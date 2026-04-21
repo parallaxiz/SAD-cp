@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'dart:async';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -8,28 +9,38 @@ class HomeTab extends StatefulWidget {
   State<HomeTab> createState() => _HomeTabState();
 }
 
-class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _progressAnimation;
-  final double _focusProgress = 7 / 60; // 7 minutes out of 60
+class _HomeTabState extends State<HomeTab> {
+  // REAL DATA STATE
   bool _sessionStarted = false;
+  int _secondsFocusedToday = 0;
+  final int _currentStreak = 0; // Final because it's currently static
+  Timer? _focusTimer;
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    );
-    _progressAnimation = Tween<double>(begin: 0, end: _focusProgress).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
-    _controller.forward();
+  void _toggleTimer() {
+    setState(() {
+      _sessionStarted = !_sessionStarted;
+      if (_sessionStarted) {
+        _focusTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          setState(() {
+            _secondsFocusedToday++;
+          });
+        });
+      } else {
+        _focusTimer?.cancel();
+      }
+    });
+  }
+
+  String _formatTime(int totalSeconds) {
+    int mins = totalSeconds ~/ 60;
+    int secs = totalSeconds % 60;
+    if (mins == 0) return '$secs sec';
+    return '$mins min $secs sec';
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _focusTimer?.cancel();
     super.dispose();
   }
 
@@ -50,7 +61,6 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
               _buildQuickStats(),
               const SizedBox(height: 16),
               _buildUpcomingChallenge(),
-              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -65,17 +75,17 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
         const SizedBox(width: 10),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Text(
-              'Hello, Alex',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1A3A3A),
+              _secondsFocusedToday > 0 ? 'Good Progress, Alex' : 'Welcome, Alex',
+              style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A3A3A)
               ),
             ),
-            Text(
-              'Ready to build your focus today?',
+            const Text(
+              'Your attention data is shown below.',
               style: TextStyle(fontSize: 13, color: Color(0xFF5A7A7A)),
             ),
           ],
@@ -85,6 +95,9 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
   }
 
   Widget _buildFocusCard() {
+    // Goal is 7 minutes (420 seconds)
+    double realProgress = (_secondsFocusedToday / 420).clamp(0.0, 1.0);
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -92,110 +105,71 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.teal.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
+              color: Colors.teal.withValues(alpha: 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4)
+          )
         ],
       ),
       child: Column(
         children: [
-          AnimatedBuilder(
-            animation: _progressAnimation,
-            builder: (context, child) {
-              return SizedBox(
-                height: 150,
-                width: 150,
-                child: Stack(
-                  alignment: Alignment.center,
+          SizedBox(
+            height: 150,
+            width: 150,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CustomPaint(
+                  size: const Size(150, 150),
+                  painter: CircularProgressPainter(
+                    progress: realProgress,
+                    backgroundColor: const Color(0xFFE0F0F0),
+                    progressColor: const Color(0xFF2A7C7C),
+                    strokeWidth: 10,
+                  ),
+                ),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CustomPaint(
-                      size: const Size(150, 150),
-                      painter: CircularProgressPainter(
-                        progress: _progressAnimation.value,
-                        backgroundColor: const Color(0xFFE0F0F0),
-                        progressColor: const Color(0xFF2A7C7C),
-                        strokeWidth: 10,
+                    Text(
+                      '${(_secondsFocusedToday / 60).floor()}',
+                      style: const TextStyle(
+                          fontSize: 42,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1A3A3A)
                       ),
                     ),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Text(
-                          '7',
-                          style: TextStyle(
-                            fontSize: 42,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1A3A3A),
-                          ),
-                        ),
-                        Text(
-                          'Minutes',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF5A7A7A),
-                          ),
-                        ),
-                      ],
+                    const Text(
+                        'Minutes',
+                        style: TextStyle(fontSize: 13, color: Color(0xFF5A7A7A))
                     ),
                   ],
                 ),
-              );
-            },
+              ],
+            ),
           ),
           const SizedBox(height: 16),
           const Text(
-            'Your Daily Focus Goal',
-            style: TextStyle(fontSize: 13, color: Color(0xFF5A7A7A)),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Current Stable Focus Block',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1A3A3A),
-            ),
+              'Daily Goal: 7 Minutes',
+              style: TextStyle(fontSize: 13, color: Color(0xFF5A7A7A))
           ),
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                setState(() => _sessionStarted = !_sessionStarted);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      _sessionStarted
-                          ? 'Focus session started! 🎯'
-                          : 'Session paused',
-                    ),
-                    backgroundColor: const Color(0xFF2A7C7C),
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                );
-              },
+              onPressed: _toggleTimer,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2A7C7C),
+                backgroundColor: _sessionStarted
+                    ? Colors.orangeAccent
+                    : const Color(0xFF2A7C7C),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(14)
                 ),
                 elevation: 0,
               ),
-              child: Text(
-                _sessionStarted
-                    ? 'Pause Focus Session'
-                    : 'Start Your Daily Focus Session',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              child: Text(_sessionStarted ? 'Stop Session' : 'Start Focus Session'),
             ),
           ),
         ],
@@ -211,30 +185,24 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.teal.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
+              color: Colors.teal.withValues(alpha: 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4)
+          )
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          const Text(
-            'Quick Stats',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1A3A3A),
-            ),
+          _buildStatItem(
+              Icons.local_fire_department,
+              'Streak',
+              _currentStreak == 0 ? '--' : '$_currentStreak Days'
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _buildStatItem(Icons.local_fire_department, 'Current Streak', '5 Days'),
-              const SizedBox(width: 20),
-              _buildStatItem(Icons.access_time, "Today's Focus", '12 Min'),
-            ],
+          const SizedBox(width: 20),
+          _buildStatItem(
+              Icons.access_time,
+              "Today",
+              _secondsFocusedToday == 0 ? '0 min' : _formatTime(_secondsFocusedToday)
           ),
         ],
       ),
@@ -245,29 +213,22 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
     return Expanded(
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEAF4F4),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: const Color(0xFF2A7C7C), size: 20),
-          ),
+          Icon(icon, color: const Color(0xFF2A7C7C), size: 20),
           const SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                label,
-                style: const TextStyle(fontSize: 11, color: Color(0xFF5A7A7A)),
+                  label,
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF5A7A7A))
               ),
               Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A3A3A),
-                ),
+                  value,
+                  style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1A3A3A)
+                  )
               ),
             ],
           ),
@@ -277,84 +238,23 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
   }
 
   Widget _buildUpcomingChallenge() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.teal.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 20),
+        child: Text(
+          "No community challenges active.",
+          style: TextStyle(
+              fontSize: 12,
+              color: Color(0xFF5A7A7A),
+              fontStyle: FontStyle.italic
           ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEAF4F4),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.group_outlined,
-              color: Color(0xFF2A7C7C),
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Upcoming Challenge',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A3A3A),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  "Group 'Deep Work Hour' starts in 30 min. Join 12 others.",
-                  style: TextStyle(fontSize: 13, color: Color(0xFF5A7A7A)),
-                ),
-                const SizedBox(height: 10),
-                GestureDetector(
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Joined Deep Work Hour! 🚀'),
-                        backgroundColor: const Color(0xFF2A7C7C),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    );
-                  },
-                  child: const Text(
-                    'Join',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2A7C7C),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
+// THE MISSING CLASS THAT WAS CAUSING THE RED ERROR
 class CircularProgressPainter extends CustomPainter {
   final double progress;
   final Color backgroundColor;
