@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'recovery_session_screen.dart';
 
 class RecoverTab extends StatefulWidget {
   const RecoverTab({super.key});
@@ -15,32 +18,32 @@ class _RecoverTabState extends State<RecoverTab>
 
   final List<Map<String, dynamic>> _recoveryTechniques = [
     {
+      'title': 'Guided Meditation',
+      'durationSeconds': 318, // 5 min 18 sec
+      'durationText': '5:18 min',
+      'description': 'Guided sessions for focus and calm.',
+      'icon': Icons.self_improvement,
+      'color': const Color(0xFF6A4AAC),
+      'type': 'meditation',
+      'videoId': 'inpok4MKVLM',
+    },
+    {
       'title': 'Box Breathing',
-      'duration': '4 min',
+      'durationSeconds': 240,
+      'durationText': '4 min',
       'description': 'Inhale → Hold → Exhale → Hold, 4s each.',
       'icon': Icons.crop_square_outlined,
-      'color': Color(0xFF2A7C7C),
-    },
-    {
-      'title': 'Body Scan',
-      'duration': '8 min',
-      'description': 'Progressive relaxation from head to toe.',
-      'icon': Icons.accessibility_new,
-      'color': Color(0xFF3A9C8C),
-    },
-    {
-      'title': 'Nature Sounds',
-      'duration': '10 min',
-      'description': 'Ambient sounds to reset your nervous system.',
-      'icon': Icons.nature,
-      'color': Color(0xFF1A6A6A),
+      'color': const Color(0xFF2A7C7C),
+      'type': 'box',
     },
     {
       'title': 'Micro-Nap Guide',
-      'duration': '20 min',
+      'durationSeconds': 1200,
+      'durationText': '20 min',
       'description': 'Power nap protocol for peak recovery.',
       'icon': Icons.bedtime_outlined,
-      'color': Color(0xFF4AACAC),
+      'color': const Color(0xFF4AACAC),
+      'type': 'nap',
     },
   ];
 
@@ -63,7 +66,7 @@ class _RecoverTabState extends State<RecoverTab>
     setState(() {
       _isBreathing = !_isBreathing;
       if (_isBreathing) {
-        _startBreathingCycle();
+        _start478Cycle();
       } else {
         _breathController.stop();
         _breathPhase = 'Tap to begin';
@@ -71,35 +74,56 @@ class _RecoverTabState extends State<RecoverTab>
     });
   }
 
-  void _startBreathingCycle() async {
-    final phases = ['Inhale...', 'Hold...', 'Exhale...', 'Hold...'];
-    int i = 0;
-    while (_isBreathing) {
-      if (!mounted) break;
-      setState(() => _breathPhase = phases[i % 4]);
+  void _start478Cycle() async {
+    while (_isBreathing && mounted) {
+      // Inhale (4s)
+      if (!mounted || !_isBreathing) break;
+      setState(() => _breathPhase = 'Inhale...');
+      HapticFeedback.lightImpact();
+      _breathController.duration = const Duration(seconds: 4);
+      _breathController.forward(from: 0);
       await Future.delayed(const Duration(seconds: 4));
-      i++;
+
+      // Hold (7s)
+      if (!mounted || !_isBreathing) break;
+      setState(() => _breathPhase = 'Hold...');
+      HapticFeedback.mediumImpact();
+      await Future.delayed(const Duration(seconds: 7));
+
+      // Exhale (8s)
+      if (!mounted || !_isBreathing) break;
+      setState(() => _breathPhase = 'Exhale...');
+      HapticFeedback.lightImpact();
+      _breathController.duration = const Duration(seconds: 8);
+      _breathController.reverse(from: 1);
+      await Future.delayed(const Duration(seconds: 8));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : const Color(0xFF1A3A3A);
+    final subTextColor = isDark ? Colors.white70 : const Color(0xFF5A7A7A);
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFEAF4F4),
+      backgroundColor: scaffoldBg,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(),
+              _buildHeader(textColor, subTextColor),
               const SizedBox(height: 20),
               _buildBreathingCard(),
               const SizedBox(height: 20),
-              _buildSectionTitle('Recovery Techniques'),
+              _buildSectionTitle('Recovery Techniques', textColor),
               const SizedBox(height: 12),
               ..._recoveryTechniques
-                  .map((t) => _buildTechniqueCard(t))
+                  .map((t) => _buildTechniqueCard(t, cardColor, textColor, subTextColor))
                   .toList(),
               const SizedBox(height: 20),
             ],
@@ -109,22 +133,22 @@ class _RecoverTabState extends State<RecoverTab>
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(Color textColor, Color subTextColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
+      children: [
         Text(
           'Recover',
           style: TextStyle(
             fontSize: 26,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1A3A3A),
+            color: textColor,
           ),
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         Text(
           'Rest is part of the process',
-          style: TextStyle(fontSize: 13, color: Color(0xFF5A7A7A)),
+          style: TextStyle(fontSize: 13, color: subTextColor),
         ),
       ],
     );
@@ -161,30 +185,43 @@ class _RecoverTabState extends State<RecoverTab>
           const SizedBox(height: 24),
           GestureDetector(
             onTap: _toggleBreathing,
-            child: AnimatedContainer(
-              duration: const Duration(seconds: 4),
-              curve: Curves.easeInOut,
-              width: _isBreathing ? 130 : 100,
-              height: _isBreathing ? 130 : 100,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.2),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.5),
-                  width: 2,
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  _breathPhase,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+            child: AnimatedBuilder(
+              animation: _breathController,
+              builder: (context, child) {
+                double size = 100 + (_breathController.value * 50);
+                return Container(
+                  width: 160,
+                  height: 160,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.1),
                   ),
-                ),
-              ),
+                  child: Container(
+                    width: size,
+                    height: size,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.2),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.5),
+                        width: 2,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        _breathPhase,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
           const SizedBox(height: 20),
@@ -200,27 +237,27 @@ class _RecoverTabState extends State<RecoverTab>
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, Color textColor) {
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 17,
         fontWeight: FontWeight.bold,
-        color: Color(0xFF1A3A3A),
+        color: textColor,
       ),
     );
   }
 
-  Widget _buildTechniqueCard(Map<String, dynamic> technique) {
+  Widget _buildTechniqueCard(Map<String, dynamic> technique, Color cardColor, Color textColor, Color subTextColor) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.teal.withOpacity(0.07),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -247,18 +284,18 @@ class _RecoverTabState extends State<RecoverTab>
               children: [
                 Text(
                   technique['title'] as String,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A3A3A),
+                    color: textColor,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   technique['description'] as String,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF5A7A7A),
+                    color: subTextColor,
                   ),
                 ),
               ],
@@ -268,7 +305,7 @@ class _RecoverTabState extends State<RecoverTab>
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                technique['duration'] as String,
+                technique['durationText'] as String,
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
@@ -278,13 +315,15 @@ class _RecoverTabState extends State<RecoverTab>
               const SizedBox(height: 6),
               GestureDetector(
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Starting ${technique['title']}... 🧘'),
-                      backgroundColor: const Color(0xFF2A7C7C),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RecoverySessionScreen(
+                        title: technique['title'],
+                        durationSeconds: technique['durationSeconds'],
+                        type: technique['type'],
+                        color: technique['color'],
+                        videoId: technique['videoId'],
                       ),
                     ),
                   );
