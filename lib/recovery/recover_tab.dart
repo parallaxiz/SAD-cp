@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'recovery_session_screen.dart';
+import '../recovery/recovery_session_screen.dart';
 
 class RecoverTab extends StatefulWidget {
   const RecoverTab({super.key});

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'data_manager.dart';
-import 'local_data_service.dart';
+import 'home/data_manager.dart';
+import '/home/local_data_service.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});

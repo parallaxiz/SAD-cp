@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'training_game_screen.dart';
-import 'local_data_service.dart';
+import '../training/training_game_screen.dart';
+import '../home/local_data_service.dart';
 
 class TrainTab extends StatefulWidget {
   const TrainTab({super.key});

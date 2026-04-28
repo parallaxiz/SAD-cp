@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'dart:async';
-import 'data_manager.dart';
+import '../home/data_manager.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'data_manager.dart';
+import 'home/data_manager.dart';
 
 // Import all 6 tab files
-import 'home_tab.dart';
-import 'train_tab.dart';
+import 'home/home_tab.dart';
+import 'training/train_tab.dart';
 import 'analyze_tab.dart';
 import 'co_focus_tab.dart';
-import 'recover_tab.dart';
+import 'recovery/recover_tab.dart';
 import 'profile_tab.dart';
 
 void main() async {
