@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'data_manager.dart';
 
 // Import all 6 tab files
 import 'home_tab.dart';
@@ -9,8 +10,12 @@ import 'co_focus_tab.dart';
 import 'recover_tab.dart';
 import 'profile_tab.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize DataManager to load saved sessions
+  await DataManager.init();
+
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -25,16 +30,30 @@ class FocusFlowApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'FocusFlow',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: const Color(0xFF2A7C7C),
-        scaffoldBackgroundColor: const Color(0xFFEAF4F4),
-        fontFamily: 'SF Pro Display', // Uses system font; swap for your own
-      ),
-      home: const MainShell(),
+    return ValueListenableBuilder<bool>(
+      valueListenable: DataManager.isDarkMode,
+      builder: (context, isDark, child) {
+        return MaterialApp(
+          title: 'FocusFlow',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            useMaterial3: true,
+            colorSchemeSeed: const Color(0xFF2A7C7C),
+            brightness: Brightness.light,
+            scaffoldBackgroundColor: const Color(0xFFEAF4F4),
+            fontFamily: 'SF Pro Display',
+          ),
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            colorSchemeSeed: const Color(0xFF2A7C7C),
+            brightness: Brightness.dark,
+            scaffoldBackgroundColor: const Color(0xFF121212),
+            fontFamily: 'SF Pro Display',
+          ),
+          themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+          home: const MainShell(),
+        );
+      }
     );
   }
 }
@@ -71,8 +90,6 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // IndexedStack keeps all pages alive and instantiated,
-      // preventing rebuild/state loss when switching tabs
       body: IndexedStack(
         index: _currentIndex,
         children: _pages,
@@ -82,12 +99,14 @@ class _MainShellState extends State<MainShell> {
   }
 
   Widget _buildBottomNav() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.teal.withAlpha(1),
+            color: Colors.teal.withValues(alpha: 0.1),
             blurRadius: 16,
             offset: const Offset(0, -4),
           ),
@@ -151,7 +170,6 @@ class _MainShellState extends State<MainShell> {
   }
 }
 
-// Simple data class for nav items
 class _NavItem {
   final IconData icon;
   final IconData activeIcon;

@@ -52,25 +52,31 @@ class _CoFocusTabState extends State<CoFocusTab> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF1A3A3A);
+    final subTextColor = isDark ? Colors.white70 : const Color(0xFF5A7A7A);
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFEAF4F4),
+      backgroundColor: scaffoldBg,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(),
+              _buildHeader(textColor, subTextColor),
               const SizedBox(height: 20),
               _buildCreateSessionButton(),
               const SizedBox(height: 20),
-              _buildSectionTitle('Active Sessions'),
+              _buildSectionTitle('Active Sessions', textColor),
               const SizedBox(height: 12),
-              ..._activeSessions.map((s) => _buildSessionCard(s)).toList(),
+              ..._activeSessions.map((s) => _buildSessionCard(s, cardColor, textColor, subTextColor, scaffoldBg)).toList(),
               const SizedBox(height: 20),
-              _buildSectionTitle('Friends'),
+              _buildSectionTitle('Friends', textColor),
               const SizedBox(height: 12),
-              _buildFriendsList(),
+              _buildFriendsList(cardColor, textColor, subTextColor, scaffoldBg),
               const SizedBox(height: 20),
             ],
           ),
@@ -79,22 +85,22 @@ class _CoFocusTabState extends State<CoFocusTab> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(Color textColor, Color subTextColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
+      children: [
         Text(
           'Co-Focus',
           style: TextStyle(
             fontSize: 26,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1A3A3A),
+            color: textColor,
           ),
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         Text(
           'Focus better together',
-          style: TextStyle(fontSize: 13, color: Color(0xFF5A7A7A)),
+          style: TextStyle(fontSize: 13, color: subTextColor),
         ),
       ],
     );
@@ -149,28 +155,28 @@ class _CoFocusTabState extends State<CoFocusTab> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, Color textColor) {
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 17,
         fontWeight: FontWeight.bold,
-        color: Color(0xFF1A3A3A),
+        color: textColor,
       ),
     );
   }
 
-  Widget _buildSessionCard(Map<String, dynamic> session) {
+  Widget _buildSessionCard(Map<String, dynamic> session, Color cardColor, Color textColor, Color subTextColor, Color scaffoldBg) {
     final isLive = session['isLive'] as bool;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.teal.withOpacity(0.07),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -184,10 +190,10 @@ class _CoFocusTabState extends State<CoFocusTab> {
               Expanded(
                 child: Text(
                   session['title'] as String,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A3A3A),
+                    color: textColor,
                   ),
                 ),
               ),
@@ -196,7 +202,7 @@ class _CoFocusTabState extends State<CoFocusTab> {
                 decoration: BoxDecoration(
                   color: isLive
                       ? const Color(0xFFFF4444).withOpacity(0.12)
-                      : const Color(0xFFEAF4F4),
+                      : scaffoldBg,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -230,18 +236,18 @@ class _CoFocusTabState extends State<CoFocusTab> {
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.person_outline, size: 14, color: Color(0xFF5A7A7A)),
+              Icon(Icons.person_outline, size: 14, color: subTextColor),
               const SizedBox(width: 4),
               Text(
                 'Host: ${session['host']}',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF5A7A7A)),
+                style: TextStyle(fontSize: 12, color: subTextColor),
               ),
               const SizedBox(width: 14),
-              const Icon(Icons.group_outlined, size: 14, color: Color(0xFF5A7A7A)),
+              Icon(Icons.group_outlined, size: 14, color: subTextColor),
               const SizedBox(width: 4),
               Text(
                 '${session['participants']} joined',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF5A7A7A)),
+                style: TextStyle(fontSize: 12, color: subTextColor),
               ),
               const Spacer(),
               GestureDetector(
@@ -280,14 +286,14 @@ class _CoFocusTabState extends State<CoFocusTab> {
     );
   }
 
-  Widget _buildFriendsList() {
+  Widget _buildFriendsList(Color cardColor, Color textColor, Color subTextColor, Color scaffoldBg) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.teal.withOpacity(0.08),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -302,8 +308,8 @@ class _CoFocusTabState extends State<CoFocusTab> {
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             decoration: BoxDecoration(
               border: index < _friends.length - 1
-                  ? const Border(
-                bottom: BorderSide(color: Color(0xFFF0F8F8), width: 1),
+                  ? Border(
+                bottom: BorderSide(color: scaffoldBg, width: 1),
               )
                   : null,
             ),
@@ -313,7 +319,7 @@ class _CoFocusTabState extends State<CoFocusTab> {
                   children: [
                     CircleAvatar(
                       radius: 20,
-                      backgroundColor: const Color(0xFFEAF4F4),
+                      backgroundColor: scaffoldBg,
                       child: Text(
                         friend['name'].toString().substring(0, 1),
                         style: const TextStyle(
@@ -335,7 +341,7 @@ class _CoFocusTabState extends State<CoFocusTab> {
                               ? const Color(0xFF44BB44)
                               : const Color(0xFFCCCCCC),
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 1.5),
+                          border: Border.all(color: cardColor, width: 1.5),
                         ),
                       ),
                     ),
@@ -348,10 +354,10 @@ class _CoFocusTabState extends State<CoFocusTab> {
                     children: [
                       Text(
                         friend['name'] as String,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF1A3A3A),
+                          color: textColor,
                         ),
                       ),
                       Text(
@@ -360,7 +366,7 @@ class _CoFocusTabState extends State<CoFocusTab> {
                           fontSize: 12,
                           color: isFocusing
                               ? const Color(0xFF2A7C7C)
-                              : const Color(0xFF5A7A7A),
+                              : subTextColor,
                         ),
                       ),
                     ],
@@ -372,10 +378,10 @@ class _CoFocusTabState extends State<CoFocusTab> {
                     const SizedBox(width: 2),
                     Text(
                       '${friend['streak']}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1A3A3A),
+                        color: textColor,
                       ),
                     ),
                   ],
